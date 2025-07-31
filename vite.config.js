@@ -17,7 +17,7 @@ export default defineConfig({
   ],
   build: {
     outDir: 'dist',
-    target: 'esnext',
+    target: 'es2015',
     minify: false,
     rollupOptions: {
       input: path.resolve(__dirname, 'src/js/index.js'),
@@ -29,11 +29,26 @@ export default defineConfig({
         strict: false,
         banner: ``,
         footer: `
-require('../styles/fg-grid.css');
-        
 module.exports = {
-  Fancy,
-  Grid: Fancy.Grid
+  Fancy: (function() {
+    try {
+      return (typeof globalThis !== 'undefined' ? globalThis.Fancy : 
+        (typeof window !== 'undefined' ? window.Fancy : 
+          (typeof global !== 'undefined' ? global.Fancy : undefined)));
+    } catch(e) {
+      return undefined;
+    }
+  })(),
+  Grid: (function() {
+    try {
+      var FancyRef = (typeof globalThis !== 'undefined' ? globalThis.Fancy : 
+        (typeof window !== 'undefined' ? window.Fancy : 
+          (typeof global !== 'undefined' ? global.Fancy : undefined)));
+      return FancyRef ? FancyRef.Grid : undefined;
+    } catch(e) {
+      return undefined;
+    }
+  })()
 };`
       },{
         format: 'cjs',
@@ -43,50 +58,81 @@ module.exports = {
         strict: false,
         banner: ``,
         footer: `
-require('../styles/fg-grid.css');
-        
 module.exports = {
-  Fancy,
-  Grid: Fancy.Grid
+  Fancy: (function() {
+    try {
+      return (typeof globalThis !== 'undefined' ? globalThis.Fancy : 
+        (typeof window !== 'undefined' ? window.Fancy : 
+          (typeof global !== 'undefined' ? global.Fancy : undefined)));
+    } catch(e) {
+      return undefined;
+    }
+  })(),
+  Grid: (function() {
+    try {
+      var FancyRef = (typeof globalThis !== 'undefined' ? globalThis.Fancy : 
+        (typeof window !== 'undefined' ? window.Fancy : 
+          (typeof global !== 'undefined' ? global.Fancy : undefined)));
+      return FancyRef ? FancyRef.Grid : undefined;
+    } catch(e) {
+      return undefined;
+    }
+  })()
 };`,
         plugins: [terser()]
       }, {
-        format: 'cjs',
+        format: 'es',
         name: 'Fancy',
         entryFileNames: 'fg-grid.esm.js',
         dir: 'dist',
         strict: false,
         banner: ``,
         footer: `
-import '../styles/fg-grid.css';
-        
-const Fancy$100 = window.Fancy;
-const Grid$200 = window.Fancy.Grid;
+const FancyExport = (function() {
+  try {
+    return (typeof globalThis !== 'undefined' ? globalThis.Fancy : 
+      (typeof window !== 'undefined' ? window.Fancy : 
+        (typeof global !== 'undefined' ? global.Fancy : 
+          (typeof self !== 'undefined' ? self.Fancy : undefined))));
+  } catch(e) {
+    return undefined;
+  }
+})();
+
+const GridExport = FancyExport ? FancyExport.Grid : undefined;
 
 export {
-  Fancy$100 as Fancy,
-  Grid$200 as Grid
+  FancyExport as Fancy,
+  GridExport as Grid
 }`,
       },{
-        format: 'cjs',
+        format: 'es',
         name: 'Fancy',
         entryFileNames: 'fg-grid.esm.min.js',
         dir: 'dist',
         strict: false,
         banner: ``,
         footer: `
-import '../styles/fg-grid.css';
-        
-const Fancy$100 = window.Fancy;
-const Grid$200 = window.Fancy.Grid;
+const FancyExport = (function() {
+  try {
+    return (typeof globalThis !== 'undefined' ? globalThis.Fancy : 
+      (typeof window !== 'undefined' ? window.Fancy : 
+        (typeof global !== 'undefined' ? global.Fancy : 
+          (typeof self !== 'undefined' ? self.Fancy : undefined))));
+  } catch(e) {
+    return undefined;
+  }
+})();
+
+const GridExport = FancyExport ? FancyExport.Grid : undefined;
 
 export {
-  Fancy$100 as Fancy,
-  Grid$200 as Grid
+  FancyExport as Fancy,
+  GridExport as Grid
 }`,
         plugins: [terser()]
       },{
-        format: 'cjs',
+        format: 'umd',
         name: 'Fancy',
         entryFileNames: 'fg-grid.js',
         dir: 'dist',
@@ -103,43 +149,71 @@ export {
     exports["Fancy"] = factory();
   } else {
     // Browser globals (root is window)
+    var globalObj = (function() {
+      try {
+        return globalThis || self || window || global || this || {};
+      } catch(e) {
+        return {};
+      }
+    })();
+    root = root || globalObj;
     root["Fancy"] = factory();
   }
-})(typeof self !== 'undefined' ? self : this, function () {
-`,
+})(typeof self !== 'undefined' ? self : this, function () {`,
         footer: `
-  return Fancy;
+  return (function() {
+    try {
+      return (typeof globalThis !== 'undefined' ? globalThis.Fancy : 
+        (typeof window !== 'undefined' ? window.Fancy : 
+          (typeof global !== 'undefined' ? global.Fancy : 
+            (typeof self !== 'undefined' ? self.Fancy : Fancy))));
+    } catch(e) {
+      return Fancy;
+    }
+  })();
 });`,
         globals: {
-          window: 'self'
+          window: 'globalThis'
         }
       },{
-        format: 'cjs',
+        format: 'umd',
         name: 'Fancy',
         entryFileNames: 'fg-grid.min.js',
         dir: 'dist',
         strict: false,
         banner: `(function (root, factory) {
   if (typeof exports === 'object' && typeof module === 'object') {
-    // CommonJS
     module.exports = factory();
   } else if (typeof define === 'function' && define.amd) {
-    // AMD
     define([], factory);
   } else if (typeof exports === 'object') {
-    // CommonJS-like environments
     exports["Fancy"] = factory();
   } else {
-    // Browser globals (root is window)
+    var globalObj = (function() {
+      try {
+        return globalThis || self || window || global || this || {};
+      } catch(e) {
+        return {};
+      }
+    })();
+    root = root || globalObj;
     root["Fancy"] = factory();
   }
-})(typeof self !== 'undefined' ? self : this, function () {
-`,
+})(typeof self !== 'undefined' ? self : this, function () {`,
         footer: `
-  return Fancy;
+  return (function() {
+    try {
+      return (typeof globalThis !== 'undefined' ? globalThis.Fancy : 
+        (typeof window !== 'undefined' ? window.Fancy : 
+          (typeof global !== 'undefined' ? global.Fancy : 
+            (typeof self !== 'undefined' ? self.Fancy : Fancy))));
+    } catch(e) {
+      return Fancy;
+    }
+  })();
 });`,
         globals: {
-          window: 'self'
+          window: 'globalThis'
         },
         plugins: [terser()]
       }]

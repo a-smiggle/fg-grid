@@ -1,6 +1,38 @@
+// Get global object safely for different environments
+const getGlobalObject = () => {
+  if (typeof globalThis !== 'undefined') return globalThis;
+  if (typeof window !== 'undefined') return window;
+  if (typeof global !== 'undefined') return global;
+  if (typeof self !== 'undefined') return self;
+  throw new Error('Unable to locate global object');
+};
+
+// Get document object safely for different environments
+const getDocumentObject = () => {
+  const globalObj = getGlobalObject();
+  return globalObj.document || {
+    createElement: () => ({}),
+    getElementById: () => null,
+    querySelector: () => null,
+    body: {
+      appendChild: () => {},
+      removeChild: () => {},
+      querySelectorAll: () => [],
+      addEventListener: () => {},
+      removeEventListener: () => {}
+    },
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    execCommand: () => false
+  };
+};
+
+const globalObj = getGlobalObject();
+const documentObj = getDocumentObject();
+
 const Fancy = {
   version: '0.8.5',
-  isTouchDevice: 'ontouchstart' in window,
+  isTouchDevice: 'ontouchstart' in globalObj,
   gridIdSeed: 0,
   gridsMap: new Map(),
   get(id){
@@ -28,7 +60,7 @@ const Fancy = {
     return clonedObj;
   },
   getTranslateY(element) {
-    const style = window.getComputedStyle(element);
+    const style = globalObj.getComputedStyle(element);
     const matrix = style.transform;
 
     if (!matrix || matrix === 'none') {
@@ -109,12 +141,12 @@ const Fancy = {
    * @param {Object} style
    */
   newElement(tag, cls, style = {}){
-    const el = document.createElement(tag);
+    const el = documentObj.createElement(tag);
 
     if(Array.isArray(cls)){
-      el.classList.add(...cls);
+      el.classList?.add(...cls);
     } else if(typeof cls === 'string'){
-      el.classList.add(cls);
+      el.classList?.add(cls);
     }
 
     for(let p in style){
@@ -122,11 +154,16 @@ const Fancy = {
         continue;
       }
 
-      el.style[p] = style[p];
+      if(el.style){
+        el.style[p] = style[p];
+      }
     }
 
     return el;
   }
 };
 
-window.Fancy = window.Fancy || Fancy;
+// Safe global assignment for different environments
+if (typeof globalObj !== 'undefined') {
+  globalObj.Fancy = globalObj.Fancy || Fancy;
+}

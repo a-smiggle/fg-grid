@@ -10,21 +10,21 @@ Fancy.render = {
       return;
     }
 
-    const inputEl = document.createElement('input');
-    inputEl.setAttribute('type', 'checkbox');
+    const inputEl = Fancy.newElement('input');
+    inputEl.setAttribute?.('type', 'checkbox');
     inputEl.checked = value;
 
-    inputEl.addEventListener('click', (e) => {
-      !column.editable && e.preventDefault();
+    inputEl.addEventListener?.('click', (e) => {
+      !column.editable && e.preventDefault?.();
     });
 
-    inputEl.addEventListener('change', (e) => {
+    inputEl.addEventListener?.('change', (e) => {
       column.onCheckBoxChange?.(e, inputEl.checked);
     });
 
-    cell.classList.add(Fancy.cls.CELL_BOOLEAN);
+    cell.classList?.add(Fancy.cls.CELL_BOOLEAN);
 
-    cell.appendChild(inputEl);
+    cell.appendChild?.(inputEl);
   },
   order(params){
     const {
@@ -37,8 +37,10 @@ Fancy.render = {
       return Number(rowIndex) + 1;
     }
 
-    cell.classList.add(Fancy.cls.CELL_ORDER);
+    cell.classList?.add(Fancy.cls.CELL_ORDER);
 
-    cell.innerHTML = rowIndex + 1;
+    if(cell.innerHTML !== undefined){
+      cell.innerHTML = rowIndex + 1;
+    }
   }
 };

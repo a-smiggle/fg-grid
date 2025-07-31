@@ -112,13 +112,27 @@
     initContainer(renderTo){
       const me = this;
 
-      if(renderTo.tagName){
+      // Get document safely for different environments
+      const getDocument = () => {
+        try {
+          if (typeof globalThis !== 'undefined' && globalThis.document) return globalThis.document;
+          if (typeof window !== 'undefined' && window.document) return window.document;
+          if (typeof document !== 'undefined') return document;
+          return null;
+        } catch(e) {
+          return null;
+        }
+      };
+
+      const documentObj = getDocument();
+
+      if(renderTo && renderTo.tagName){
         me.containerEl = renderTo;
-      } else if(typeof renderTo === 'string'){
-        me.containerEl = document.getElementById(renderTo);
+      } else if(typeof renderTo === 'string' && documentObj){
+        me.containerEl = documentObj.getElementById(renderTo);
 
         if(!me.containerEl){
-          me.containerEl = document.querySelector(renderTo);
+          me.containerEl = documentObj.querySelector(renderTo);
         }
       }
 
@@ -747,6 +761,17 @@
     }
   }
 
-  window.Grid = Grid;
+  // Safe global assignment for different environments
+  const globalObj = (() => {
+    if (typeof globalThis !== 'undefined') return globalThis;
+    if (typeof window !== 'undefined') return window;
+    if (typeof global !== 'undefined') return global;
+    if (typeof self !== 'undefined') return self;
+    throw new Error('Unable to locate global object');
+  })();
+
+  if (typeof globalObj !== 'undefined') {
+    globalObj.Grid = Grid;
+  }
   Fancy.Grid = Grid;
 })();

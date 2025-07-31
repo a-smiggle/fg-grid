@@ -15,7 +15,8 @@
     "./styles/fg-grid.css": "./styles/fg-grid.css"
   },
   "scripts": {
-    "build": "vite build"
+    "build": "vite build",
+    "build:powerbi": "vite build --config vite.powerbi.config.js"
   },
   "keywords": [
     "fg",
