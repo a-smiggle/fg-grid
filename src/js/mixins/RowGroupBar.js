@@ -1,6 +1,7 @@
 (() => {
   const {
     COLUMN_DRAGGING,
+    ROW_GROUPING,
     ROW_GROUP_BAR,
     ROW_GROUP_BAR_EMPTY_TEXT,
     ROW_GROUP_BAR_ITEM_CONTAINER,
@@ -14,10 +15,7 @@
     SVG_REMOVE
   } = Fancy.cls;
 
-  const {
-    div,
-    span
-  } = Fancy;
+  const { div, span } = Fancy;
 
   /**
    * @mixin GridMixinRowGroupBar
@@ -37,7 +35,7 @@
       rowGroupBarEl.appendChild(groupLogoEl);
 
       const emptyTextEl = span([ROW_GROUP_BAR_EMPTY_TEXT]);
-      emptyTextEl.innerHTML = 'Drag columns here to generate row groups';
+      emptyTextEl.innerHTML = me.lang.groupBarDragEmpty;
 
       rowGroupBarEl.appendChild(emptyTextEl);
 
@@ -52,9 +50,7 @@
       const me = this;
 
       me.store.rowGroups.forEach(group => {
-        const column =  me.getColumn(group);
-
-        me.addGroupInBar(column, false);
+        me.addGroupInBar(me.getColumn(group), false);
       });
       delete me.activeRowGroupBarItemEl;
     },
@@ -80,6 +76,8 @@
           me.$requiresReSetGroupColumn = true;
         }
       }
+
+      me.gridEl.classList.add(ROW_GROUPING);
 
       me.rowGroupBarEmptyTextEl.style.setProperty('display', 'none');
     },
@@ -112,9 +110,7 @@
 
         chevronEl.innerHTML = svgChevronRight;
 
-        if(me.rowGroupBarSeparator){
-          containerEl.appendChild(chevronEl);
-        }
+        me.rowGroupBarSeparator && containerEl.appendChild(chevronEl);
       }
 
       containerEl.appendChild(groupItemEl);
@@ -160,17 +156,13 @@
           setTimeout(() => {
             me.reConfigRowGroups();
 
-            if(me.store.rowGroups.length === 0 && me.$rowGroupColumn){
-              me.removeColumn(me.$rowGroupColumn);
-            }
+            if (me.store.rowGroups.length === 0 && me.$rowGroupColumn) me.removeColumn(me.$rowGroupColumn);
           }, 1);
         } else {
           me.activeRowGroupBarItemEl.classList.remove(ROW_GROUP_BAR_ITEM_ACTIVE);
 
           if(changedRowGroupItemOrderIndex !== undefined && changedRowGroupItemOrderIndex !== originalRowGroupItemOrderIndex){
-            setTimeout(() => {
-              me.reConfigRowGroups();
-            }, 1);
+            setTimeout(() => me.reConfigRowGroups(), 1);
           }
         }
 
@@ -210,6 +202,8 @@
 
       if(!me.rowGroupBarItems || me.rowGroupBarItems?.length === 0){
         me.rowGroupBarEmptyTextEl.style.setProperty('display', '');
+
+        me.gridEl.classList.remove(ROW_GROUPING);
       }
     },
     onRowGroupBarItemRemoveClick(event){
@@ -219,9 +213,7 @@
       const groupItemToRemove = me.rowGroupBarItems.splice(rowGroupOrderIndex, 1)[0];
       const column = me.rowGroupBarItemColumns.splice(rowGroupOrderIndex, 1)[0];
 
-      if(me.isEditing){
-        me.hideActiveEditor();
-      }
+      me.isEditing && me.hideActiveEditor();
 
       groupItemToRemove.remove();
       me.showColumn(column, true);
@@ -230,14 +222,13 @@
 
       if(!me.rowGroupBarItems || me.rowGroupBarItems?.length === 0){
         me.rowGroupBarEmptyTextEl.style.setProperty('display', '');
+        me.gridEl.classList.remove(ROW_GROUPING);
       }
 
       me.reSetRowGroupOrderIndex();
       me.reConfigRowGroups();
 
-      if(me.store.rowGroups.length === 0 && me.$rowGroupColumn){
-        me.removeColumn(me.$rowGroupColumn);
-      }
+      if (me.store.rowGroups.length === 0 && me.$rowGroupColumn) me.removeColumn(me.$rowGroupColumn);
     },
     reSetRowGroupOrderIndex(){
       this.rowGroupBarItems.forEach((item, index) => {

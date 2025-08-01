@@ -9,7 +9,7 @@ interface GridConfig<TData = any> {
   width?: number;
   height?: number;
   id?: string;
-  theme?: 'default' | 'string';
+  theme?: 'default' | 'air' | 'dark' | string;
   defaultColumnWidth?: number;
   headerRowHeight?: number;
   rowHeight?: number;
@@ -30,6 +30,27 @@ interface GridConfig<TData = any> {
   flashChanges?: boolean;
   flashChangesColors?: [string, string];
   columnLines?: boolean;
+
+  lang?: {
+    group?: string;
+    groupBarDragEmpty?: string;
+    sign?: {
+      clear?: string;
+      contains?: string;
+      notContains?: string;
+      equals?: string;
+      notEquals?: string;
+      empty?: string;
+      notEmpty?: string;
+      startsWith?: string;
+      endsWith?: string;
+      regex?: string;
+      greaterThan?: string;
+      lessThan?: string;
+      positive?: string;
+      negative?: string;
+    }
+  }
 }
 
 type Sign = '<'|'>'|'<='|'>='|'='|'!=';

@@ -68,12 +68,10 @@
     defaultSign = '=';
     value = '';
     constructor(config) {
-      const me = this;
+      Object.assign(this, config);
 
-      Object.assign(me, config);
-
-      me.render();
-      me.ons();
+      this.render();
+      this.ons();
     }
     render() {
       const me = this;
@@ -98,9 +96,8 @@
 
       me.updateUI(FancySignText[me.sign || me.defaultSign]);
 
-      el.appendChild(elSign);
-      el.appendChild(elInput);
-      el.appendChild(elText);
+      el.append(elSign, elInput, elText);
+      me.el = el;
 
       me.container.appendChild(el);
     }
@@ -109,7 +106,22 @@
 
       me.debouceInputFn = Fancy.debounce(me.onInput.bind(this), 300);
       me.input.addEventListener('input', me.debouceInputFn);
+      me.input.addEventListener('focus', me.#onFocus.bind(this));
       me.elSign.addEventListener('click', me.signClick.bind(this));
+    }
+    uns(){
+      const me = this;
+
+      me.input.removeEventListener('input', me.debouceInputFn);
+      me.input.removeEventListener('focus', me.#onFocus.bind(this));
+      me.elSign.removeEventListener('click', me.signClick.bind(this));
+    }
+    destroy() {
+      const me = this;
+
+      me.uns();
+      me.destroyComboList();
+      me.el.remove();
     }
     signClick() {
       const me = this;
@@ -128,6 +140,11 @@
         me.destroyComboList();
       }
     }
+    #onFocus(event){
+      const me = this;
+
+      me.onFocus?.();
+    }
     onInput(event) {
       const me = this;
       const sign = me.sign || me.defaultSign;
@@ -142,17 +159,15 @@
       });
     }
     destroyComboList() {
-      const me = this;
-
-      me.elComboList?.remove();
-      delete me.elComboList;
+      this.elComboList?.remove();
+      delete this.elComboList;
     }
     showComboList() {
       const me = this;
       const elSignRect = me.elSign.getBoundingClientRect();
       const top = elSignRect.top - 1 + elSignRect.height;
       const left = elSignRect.left;
-      const el = div(FILTER_FIELD_LIST, {
+      const el = div([FILTER_FIELD_LIST, 'fg-theme-' + me.theme], {
         top: `${top}px`,
         left: `${left}px`
       });
@@ -199,7 +214,9 @@
             break;
         }
 
-        innerHTML.push(`<div class="${FILTER_FIELD_LIST_ITEM_TEXT}">${sign}</div>`);
+        const signText = me.lang.sign[Fancy.toCamelCase(sign.toLowerCase())];
+
+        innerHTML.push(`<div class="${FILTER_FIELD_LIST_ITEM_TEXT}">${signText}</div>`);
         innerHTML.push('</div>');
 
         return innerHTML.join('');
@@ -250,9 +267,7 @@
     clearValue(preventFire = false) {
       const me = this;
 
-      if(preventFire){
-        me.preventFire = true;
-      }
+      if(preventFire) (me.preventFire = true);
       me.input.value = '';
       me.setSign('Clear');
       delete me.preventFire;

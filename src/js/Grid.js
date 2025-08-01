@@ -3,16 +3,39 @@
     GRID,
     GRID_CELLS_RIGHT_BORDER,
     ROW_ANIMATION,
+    ROW_GROUPING,
     HEADER,
     HEADER_INNER,
     HEADER_ROW,
     HEADER_ROW_COLUMN_GROUP,
+    HEADER_CELL_ROW_GROUP,
     BODY,
     BODY_INNER,
     BODY_INNER_CONTAINER,
     EDITORS_CONTAINER,
     TOUCH
   } = Fancy.cls;
+
+  const lang = {
+    group: 'Group',
+    groupBarDragEmpty: 'Drag columns here to generate row groups',
+    sign: {
+      clear: 'Clear',
+      contains: 'Contains',
+      notContains: 'Not Contains',
+      equals: 'Equals',
+      notEquals: 'Not Equals',
+      empty: 'Empty',
+      notEmpty: 'Not Empty',
+      startsWith: 'Starts with',
+      endsWith: 'Ends with',
+      regex: 'Regex',
+      greaterThan: 'Greater Than',
+      lessThan: 'Less Than',
+      positive: 'Positive',
+      negative: 'Negative'
+    }
+  };
 
   const div = Fancy.div;
   /**
@@ -69,6 +92,7 @@
       type: 'string',
       rowGroupIndent: true,
       editable: false,
+      extraCls: HEADER_CELL_ROW_GROUP,
       render(params){
         const {
           value
@@ -90,11 +114,13 @@
 
       me.actualRowsIdSet = new Set();
       me.renderedRowsIdMap = new Map();
+      me.columnsIdIndexMap = new Map();
 
       config = me.prepareConfig(config);
 
       Object.assign(me, config);
 
+      me.reSetColumnsIdIndexMap();
       me.checkInitialSize();
       me.checkSize();
       me.initScroller();
@@ -136,16 +162,12 @@
         }
       }
 
-      if(!me.containerEl){
-        console.error('FG-Grid: Could not find renderTo element');
-      }
+      !me.containerEl && console.error('FG-Grid: Could not find renderTo element');
     }
     initId(id){
       const me = this;
 
-      if(id){
-        me.id = id;
-      }
+      if (id) (me.id = id);
 
       if(!me.id){
         me.id = `fg-grid-${Fancy.gridIdSeed}`;
@@ -161,6 +183,7 @@
       me.rowAnimation && gridCls.push(ROW_ANIMATION);
       (me.cellsRightBorder || me.columnLines) && gridCls.push(GRID_CELLS_RIGHT_BORDER);
       Fancy.isTouchDevice && gridCls.push(TOUCH);
+      me.store.rowGroups?.length && gridCls.push(ROW_GROUPING);
       const gridEl = div(gridCls);
 
       gridEl.setAttribute('id', me.id);
@@ -270,9 +293,7 @@
 
       if(rowEl){
         rowEl.style.opacity = 0;
-        setTimeout(() => {
-          rowEl.remove();
-        }, 200);
+        setTimeout(() => rowEl.remove(), 200);
       }
 
       me.actualRowsIdSet.delete(id);
@@ -291,6 +312,27 @@
       const me = this;
       let rowGroups = [];
       let aggregations = [];
+
+      const $lang = Fancy.deepClone(lang);
+
+      if(config.lang){
+        for(let p in config.lang){
+          if(typeof config.lang[p] !== 'object'){
+            $lang[p] = config.lang[p];
+          }
+        }
+
+        if(config.lang.sign){
+          for(let p in config.lang.sign){
+            $lang.sign[p] = config.lang.sign[p];
+          }
+        }
+
+        me.$defaultRowGroupColumn.title = $lang.group;
+      }
+
+      me.lang = $lang;
+      delete config.lang;
 
       if(config.columns){
         config.columns = Fancy.deepClone(config.columns);
@@ -344,8 +386,18 @@
           if(rowGroups.length && me.$rowGroupColumn){
             if(config.columns[0].type === 'order'){
               config.columns.splice(1, 0, rowGroupColumn);
+
             } else {
               config.columns.unshift(rowGroupColumn);
+            }
+
+            if(config.columnsLevel > 1){
+              config.columns2.unshift({
+                ignore: true
+              });
+
+              me.generateColumnId(config.columns2[0]);
+              config.columns[0].columnGroupSpanHeight = true;
             }
           }
         }
@@ -361,7 +413,7 @@
 
           me.prepareColumn(column, config.defaults);
 
-          if(column.checkboxSelection){
+          if (column.checkboxSelection) {
             config.checkboxSelection = true;
           }
 
@@ -525,9 +577,7 @@
       const store = me.store;
       rows = me.$processRowsToRemove(rows);
 
-      if(rows.length === 0){
-        return;
-      }
+      if (rows.length === 0) return;
 
       let itemsToRemove = [];
       let dataItemsToRemove = [];
@@ -548,9 +598,7 @@
           store.selectRowItem(item, false);
         }
 
-        if (item.$isGroupRow !== true) {
-          dataItemsToRemove.push(item);
-        }
+        if (item.$isGroupRow !== true) dataItemsToRemove.push(item);
       }
 
       const passedGroupForAgUpdate = {};
@@ -635,9 +683,7 @@
       if(store.displayedData?.length){
         // Filter items that are in collapsed groups
         const displayedItemsToRemove = itemsToRemove.filter(item => {
-          if(!item.$rowGroupValue){
-            return true;
-          }
+          if (!item.$rowGroupValue) return true;
 
           return !store.isItemInCollapsedGroup(item);
         });
@@ -709,17 +755,12 @@
       const rowIndex = row?.getAttribute('row-index');
 
       const rerenderCell = (cell) => {
-        if(!cell){
-          return;
-        }
+        if (!cell) return;
 
         const columnIndex = Number(cell.getAttribute('col-index'));
-
         const newCell = me.createCell(rowIndex, columnIndex);
 
-        if(cell.innerHTML === newCell.innerHTML){
-          return;
-        }
+        if (cell.innerHTML === newCell.innerHTML) return;
 
         cell.remove();
         cell = newCell;
@@ -728,9 +769,7 @@
           cellStyle.transition = 'background-color 2000ms';
           cellStyle.backgroundColor = flashChangesColors[store.selectedItemsMap.has(id)?1:0];
 
-          setTimeout(() => {
-            cellStyle.backgroundColor = '';
-          });
+          setTimeout(() => cellStyle.backgroundColor = '');
 
           setTimeout(() => {
             cellStyle.transition = '';

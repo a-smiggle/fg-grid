@@ -1,6 +1,6 @@
 {
   "name": "fg-grid",
-  "version": "0.8.5",
+  "version": "0.9.0",
   "description": "JavaScript Grid Library",
   "type": "module",
   "main": "./dist/fg-grid.cjs.js",
@@ -12,11 +12,15 @@
       "require": "./dist/fg-grid.cjs.js",
       "types": "./types/fg-grid.d.ts"
     },
-    "./styles/fg-grid.css": "./styles/fg-grid.css"
+    "./styles/fg-grid.css": "./styles/fg-grid.css",
+    "./styles/fg-grid.min.css": "./styles/fg-grid.min.css"
   },
   "scripts": {
     "build": "vite build",
-    "build:powerbi": "vite build --config vite.powerbi.config.js"
+    "build:powerbi": "vite build --config vite.powerbi.config.js",
+    "prepare": "husky install",
+    "test": "playwright test",
+    "test-server": "serve ./ -l 3200"
   },
   "keywords": [
     "fg",
@@ -38,7 +42,13 @@
   "license": "Commercial",
   "author": "FancyGrid <support@fancygrid.com>",
   "devDependencies": {
+    "@playwright/test": "^1.54.0",
+    "@types/node": "^24.0.12",
+    "clean-css": "^5.3.3",
+    "globals": "^16.3.0",
+    "husky": "^9.1.7",
     "rollup-plugin-terser": "^7.0.2",
+    "serve": "^14.2.4",
     "vite": "^5.4.8",
     "vite-plugin-static-copy": "^1.0.6"
   }

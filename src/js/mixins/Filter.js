@@ -11,7 +11,6 @@
   /**
    * @mixin GridMixinFilter
    */
-
   const GridMixinFilter = {
     renderVisibleFilterBarCells() {
       const me = this;
@@ -21,8 +20,12 @@
 
       for (let i = columnStart; i <= columnEnd; i++) {
         const column = me.columns[i];
+        if (column.hidden) continue;
 
-        if(column.hidden){
+        if(column.filterCellEl && column.filter && !column.filterField){
+          column.filterCellEl.remove();
+          delete column.filterCellEl;
+        } else if(column.filterCellEl){
           continue;
         }
 
@@ -66,7 +69,7 @@
       cell.setAttribute('col-index', columnIndex);
       cell.setAttribute('col-id', column.id);
 
-      if (column.filter) {
+      if (column.filter && !column.filterField) {
         const filter = column.filters || {};
         let sign = '',
           value = '';
@@ -78,10 +81,13 @@
 
         column.filterField = new Fancy.FilterField({
           renderTo: cell,
+          theme: me.theme,
+          lang: me.lang,
           onChange: me.onFilterFieldChange.bind(this),
           column,
           sign,
-          value
+          value,
+          onFocus: me.onFilterFieldFocus.bind(this)
         });
       }
 
@@ -89,12 +95,13 @@
 
       return cell;
     },
+    onFilterFieldFocus(){
+      this.isEditing && this.hideActiveEditor();
+    },
     onFilterFieldChange(value, sign, column, signWasChanged) {
       const me = this;
 
-      if(signWasChanged){
-        me.store.removeFilter(column, undefined, false);
-      }
+      signWasChanged && me.store.removeFilter(column, undefined, false);
 
       if(sign === '=' && value === ''){
         delete column.filters;
@@ -260,9 +267,7 @@
           clearTimeout(me.timeOutRemoveRows);
 
           me.timeOutRemoveRows = setTimeout(() => {
-            itemsToRemove.forEach(item => {
-              me.removeDomRowById(item.id);
-            });
+            itemsToRemove.forEach(item => me.removeDomRowById(item.id));
 
             me.filtering = false;
           }, 500);
@@ -278,18 +283,14 @@
       for (let i = columnStart; i <= columnEnd; i++) {
         const column = me.columns[i];
 
-        if(column.hidden){
-          continue;
-        }
+        if (column.hidden) continue;
 
         if (Object.entries(column.filters || {}).length) {
           const filterField = column.filterField;
           const filter = column.filters;
 
           if(filterField.sign !== filter.sign){
-            if(!(filter.sign === '=' && filterField.sign === '')){
-              filterField.setSign(filter.sign);
-            }
+            if (!(filter.sign === '=' && filterField.sign === '')) filterField.setSign(filter.sign);
             filterField.setValue(filter.value, false);
           }
         }

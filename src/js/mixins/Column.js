@@ -86,11 +86,16 @@
       me.columns.splice(hiddenColumnIndex, 1);
       me.clearColumFromLinks(column);
 
+      if(me.columnsLevel > 1){
+        me.columns2.splice(hiddenColumnIndex, 1);
+      }
+
       delete me.$rowGroupColumn.elSortOrder;
       delete me.$rowGroupColumn.filterCellEl;
       delete me.$rowGroupColumn.headerCellEl;
       delete me.$rowGroupColumn.left;
 
+      me.reSetColumnsIdIndexMap();
       me.scroller.generateNewRange(false);
       me.reSetVisibleHeaderColumnsIndex();
       me.reSetVisibleBodyColumnsIndex();
@@ -110,16 +115,19 @@
       return this.columns.find(column => column.index === index);
     },
     getColumnById(id){
-      return this.columnIdsMap.get(id);
+      let column = this.columnIdsMap.get(id);
+
+      if(!column){
+        column = this.columnIdsMap.get(Number(id));
+      }
+
+      return column;
     },
     getNextVisibleColumnIndex(index){
-      const me = this;
+      const columns = this.columns;
 
-      for(let i = index + 1;i<me.columns.length;i++){
-        const column = me.columns[i];
-        if(column.hidden !== true){
-          return i;
-        }
+      for(let i = index + 1;i<columns.length;i++){
+        if (columns[i].hidden !== true) return i;
       }
     },
     getPrevVisibleColumnIndex(index){
@@ -145,8 +153,8 @@
     },
     generateColumnIds(columns, updateMaps = true){
       const me = this;
-      const columnIdsMap = me.columnIdsMap || new Map();
-      const columnIdsSeedMap = me.columnIdsSeedMap || new Map();
+      const columnIdsMap = updateMaps === false? new Map() : me.columnIdsMap || new Map();
+      const columnIdsSeedMap = updateMaps === false? new Map() : me.columnIdsSeedMap || new Map();
 
       columns.forEach(column => {
         const index = (column.index || column.title || '').toLocaleLowerCase();
@@ -167,10 +175,7 @@
           columnIdsSeedMap.set(index, seed);
         } else {
           let seed = columnIdsSeedMap.get(index);
-
-          if(seed === undefined){
-            seed = 0;
-          }
+          if (seed === undefined) (seed = 0);
 
           seed++;
           columnIdsSeedMap.set(index, seed);
@@ -212,9 +217,7 @@
       } else {
         let seed = columnIdsSeedMap.get(index);
 
-        if(seed === undefined){
-          seed = 0;
-        }
+        if (seed === undefined) (seed = 0);
 
         seed++;
         columnIdsSeedMap.set(index, seed);
@@ -233,7 +236,11 @@
       me.animatingColumnsPosition = true;
       me.gridEl.classList.add(ANIMATE_CELLS_POSITION);
 
+      delete me.columnIdSeed;
+      me.columnIdsSeedMap.clear();
+
       me.$setColumns(columns);
+      me.reSetColumnsIdIndexMap();
 
       me.scroller.generateNewRange(false);
       me.reCalcColumnsPositions();
@@ -245,6 +252,7 @@
 
       me.renderMissedCells();
       me.updateCellPositions();
+      me.filterBar && me.renderVisibleFilterBarCells();
 
       setTimeout(() => {
         me.gridEl.classList.remove(ANIMATE_CELLS_POSITION);
@@ -261,13 +269,9 @@
       for(let i = columnStart; i <= columnEnd; i++){
         const column = me.columns[i];
 
-        if(column.hidden){
-          continue;
-        }
+        if (column.hidden) continue;
 
-        if(!column.headerCellEl){
-          columnIndexes.push(i);
-        }
+        !column.headerCellEl && columnIndexes.push(i);
       }
 
       me.addColumnCells(columnIndexes);
@@ -276,12 +280,17 @@
       const me = this;
       const cells = me.headerEl.querySelectorAll(`.${HEADER_CELL}`);
 
+      //debugger
+
       cells.forEach(cell => {
         const columnId = cell.getAttribute('col-id');
         const column = me.getColumnById(columnId);
         const isColumnVisible = me.scroller.isColumnVisible(column);
 
         if(!column || !isColumnVisible){
+          console.log(column, cell);
+          debugger
+
           cell.remove();
           column && column.filterCellEl?.remove();
 
@@ -289,9 +298,7 @@
           filterCellEl?.remove();
 
           const bodyCells = me.bodyEl.querySelectorAll(`.${CELL}[col-id="${columnId}"]`);
-          bodyCells.forEach(bodyCell => {
-            bodyCell.remove();
-          });
+          bodyCells.forEach(bodyCell => bodyCell.remove());
         }
 
         column && !isColumnVisible && me.clearColumFromLinks(column);
@@ -313,6 +320,31 @@
 
           if(typeof newColumn.width === 'number' && newColumn.width !== column.width){
             column.width = newColumn.width;
+          }
+
+          if(newColumn.hidden && !column.hidden){
+            me.hideColumn(column);
+          } else if(column.hidden && !newColumn.hidden){
+            me.showColumn(column);
+          }
+
+          if(column.filter && !newColumn.filter && column.filter){
+            delete column.filter;
+            column.filterField.destroy();
+            delete column.filterField;
+          } else if(!column.filter && newColumn.filter) {
+            column.filter = true;
+          }
+
+          for(let p in newColumn){
+            switch (p){
+              case 'id':
+              case 'filter':
+              case 'hidden':
+              case 'width':
+                continue;
+            }
+            column[p] = newColumn[p];
           }
         } else {
           columnsToRemoveIds.add(column.id);
@@ -353,9 +385,7 @@
 
       const orderedColumns = [];
       newColumnsOrderMap.forEach((columnId, index) => {
-        const column = me.getColumnById(columnId);
-
-        orderedColumns[index] = column;
+        orderedColumns[index] = me.getColumnById(columnId);
       });
 
       me.columns = orderedColumns;
@@ -394,28 +424,19 @@
           });
           me.columnOrder = column;
 
-          if(store?.rowGroups.length || me?.rowGroupBar){
-            console.error('FG-Grid: Order column is not supported for row grouping');
-          }
+          if(store?.rowGroups.length || me?.rowGroupBar) console.error('FG-Grid: Order column is not supported for row grouping');
           break;
       }
 
-      if(column.width === undefined){
-        column.width = me.defaultColumnWidth;
-      }
+      if(column.width === undefined) (column.width = me.defaultColumnWidth);
+      if(column.minWidth && column.width < column.minWidth) (column.width = column.minWidth);
 
-      if(column.minWidth && column.width < column.minWidth){
-        column.width = column.minWidth;
-      }
-
-      if(!column.title){
+      if(!column.title) {
         column.title = Fancy.capitalizeFirstLetter(column.index || '');
       }
 
       Object.keys(defaults).forEach(key => {
-        if(column[key] === undefined){
-          column[key] = defaults[key];
-        }
+        if(column[key] === undefined) (column[key] = defaults[key]);
       });
     },
     updateColumnGroupLevel2(){
@@ -430,9 +451,7 @@
         const columnLevel2 = me.columns2[i];
         const prevColumn = me.columns2[i - 1];
 
-        if(columnLevel2.ignore){
-          continue;
-        }
+        if (columnLevel2.ignore) continue;
 
         if(!prevColumn || prevColumn.ignore || (prevColumn.columnGroup && columnLevel2.columnGroup && prevColumn.columnGroup.id !== columnLevel2.columnGroup.id)){
           delete columnLevel2.spanning;
@@ -460,9 +479,7 @@
 
           columnLevel2.children = children;
           const width = children.reduce((result, column) => {
-            if(column.hidden){
-              return result;
-            }
+            if (column.hidden) return result;
 
             return result + column.width;
           }, 0);
@@ -475,6 +492,18 @@
           }
         }
       }
+    },
+    reSetColumnsIdIndexMap() {
+      const me = this;
+
+      me.columnsIdIndexMap = new Map();
+      me.columns.forEach((column, index) => {
+        me.columnsIdIndexMap.set(column.id, index);
+      });
+
+      me.columns2?.forEach((column, index) => {
+        me.columnsIdIndexMap.set(column.id, index);
+      });
     }
   };
 

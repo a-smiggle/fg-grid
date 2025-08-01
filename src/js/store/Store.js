@@ -81,8 +81,7 @@
       me.data.forEach(item => {
         if (item.id === undefined) {
           item.id = me.generateId();
-        }
-        else if(typeof item.id === 'number'){
+        } else if (typeof item.id === 'number') {
           item.id = String(item.id);
         }
       });
@@ -96,8 +95,6 @@
       }
       me.updateIndexes();
     }
-    // TODO: something wrong
-    // Serious bug
     updateIndexes() {
       const me = this;
       const data = me.displayedData || me.data;
@@ -120,25 +117,6 @@
         item.rowIndex = index;
         item.originalRowIndex = index;
       });
-
-      /*
-      me.data.forEach((item, index) => {
-        me.idRowIndexesMap.set(item.id, index);
-        me.idItemMap.set(item.id, item);
-
-        item.originalRowIndex = index;
-        if(me.displayedData === undefined){
-          item.rowIndex = index;
-        }
-      });
-
-      me.displayedData?.forEach((item, index) => {
-        me.idRowIndexesMap.set(item.id, index);
-        me.idItemMap.set(item.id, item);
-
-        item.rowIndex = index;
-      });
-       */
     }
     setIds() {
       const me = this;
@@ -208,9 +186,7 @@
 
       for(let i = rowIndex - 1;i>-1;i--){
         const row = data[i];
-        if(row.$isGroupRow !== true){
-          return i;
-        }
+        if (row.$isGroupRow !== true) return i;
       }
     }
     getNextVisibleRowIndex(rowIndex){
@@ -220,9 +196,7 @@
 
       for(let i = rowIndex + 1;i<totalDisplayed;i++){
         const row = data[i];
-        if(row.$isGroupRow !== true){
-          return i;
-        }
+        if (row.$isGroupRow !== true) return i;
       }
     }
   }
