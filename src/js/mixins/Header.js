@@ -177,9 +177,12 @@
       const filterContainer = span(FILTER_INDICATOR_CONTAINER);
 
       const elFilter = span(HEADER_FILTER_EL);
-      if(!Object.entries(column.filters || {}).length){
+      if (Object.entries(column.filters || {}).length && column.filters.value !== '') {
+        elFilter.classList.remove(HIDDEN);
+      } else {
         elFilter.classList.add(HIDDEN);
       }
+
       elFilter.innerHTML = Fancy.svg.filter;
       filterContainer.appendChild(elFilter);
       column.elFilter = elFilter;
@@ -217,10 +220,29 @@
 
       label.append(cellText, filterContainer, sortContainer);
 
-      const elMenu = div(HEADER_CELL_MENU);
+      const elMenu = div(HEADER_CELL_MENU, Fancy.isTouchDevice ? {} : {
+        display: 'none'
+      });
       elMenu.innerHTML = Fancy.svg.menu;
 
       column.elMenu = elMenu;
+
+      if(!Fancy.isTouchDevice && column.menu !== false) {
+        cell.addEventListener('mouseenter', () => {
+          elMenu.style.opacity = '0';
+          elMenu.style.display = '';
+          setTimeout(() => {
+            elMenu.style.opacity = '1';
+          });
+        });
+
+        cell.addEventListener('mouseleave', () => {
+          elMenu.style.opacity = '0';
+          setTimeout(() => {
+            elMenu.style.display = 'none';
+          }, 200);
+        });
+      }
 
       if(column.headerCheckboxSelection && column.checkboxSelection){
         const elSelection = div(HEADER_CELL_SELECTION);
@@ -581,8 +603,12 @@
           continue;
         }
 
-        if (Object.entries(column.filters || {}).length) {
-          column.elFilter.classList.remove(HIDDEN);
+        if (Object.entries(column.filters || {}).length && column.filters.value !== '') {
+          if(Array.isArray(column.filters.value) && column.filters.value.length === 0){
+            column.elFilter.classList.add(HIDDEN);
+          } else {
+            column.elFilter.classList.remove(HIDDEN);
+          }
         } else {
           column.elFilter.classList.add(HIDDEN);
         }

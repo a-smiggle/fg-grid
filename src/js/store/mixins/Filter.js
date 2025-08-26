@@ -83,6 +83,10 @@
       let data;
       let totalReFilterRequired = false;
 
+      if(!column){
+        return;
+      }
+
       if (me.prevAction === 'sort' && me.sortedData) {
         data = me.sortedData.slice();
       } else if (me.prevAction === 'filter' && me.prevFilterColumn?.id !== column.id && me.filteredData) {
@@ -167,7 +171,11 @@
     filterData(data, column, value, sign) {
       let filteredData = [];
 
-      value = String(value).toLocaleLowerCase();
+      if(Array.isArray(value)){
+        value = value.map(v => String(v).toLocaleLowerCase());
+      } else {
+        value = String(value).toLocaleLowerCase();
+      }
 
       const getItemValue = (item) => {
         let itemValue;
@@ -187,11 +195,23 @@
       switch (sign) {
         // Contains
         case '=':
-          filteredData = data.filter(item => {
-            const itemValue = String(getItemValue(item)).toLocaleLowerCase();
+          if(Array.isArray(value)){
+            if(value.length === 0){
+              filteredData = data;
+            } else {
+              filteredData = data.filter(item => {
+                const itemValue = String(getItemValue(item)).toLocaleLowerCase();
 
-            return itemValue.includes(value);
-          });
+                return value.includes(itemValue);
+              });
+            }
+          } else {
+            filteredData = data.filter(item => {
+              const itemValue = String(getItemValue(item)).toLocaleLowerCase();
+
+              return itemValue.includes(value);
+            });
+          }
           break;
         // Not Contains
         case '!=':

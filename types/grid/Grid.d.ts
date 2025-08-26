@@ -1,4 +1,4 @@
-import { Column, RenderParams, RowStyle, RowClsRules } from './Column';
+import { Column, RenderParams, ChangeParams, RowStyle, RowClsRules } from './Column';
 
 interface GridConfig<TData = any> {
   renderTo?: string | HTMLElement | null;
@@ -30,12 +30,17 @@ interface GridConfig<TData = any> {
   flashChanges?: boolean;
   flashChangesColors?: [string, string];
   columnLines?: boolean;
+  onChange?: (params: ChangeParams<TData>) => any;
+  onReady?: (grid: Grid<TData>) => any;
 
   lang?: {
     group?: string;
     groupBarDragEmpty?: string;
+    search?: string;
+    reset?: string;
     sign?: {
       clear?: string;
+      list?: string;
       contains?: string;
       notContains?: string;
       equals?: string;
@@ -49,6 +54,8 @@ interface GridConfig<TData = any> {
       lessThan?: string;
       positive?: string;
       negative?: string;
+      t?: string;
+      f?: string;
     }
   }
 }

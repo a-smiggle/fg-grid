@@ -1,12 +1,22 @@
 (() => {
   const {
+    FIELD_DISABLED,
     FILTER_FIELD,
     FILTER_FIELD_INPUT,
     FILTER_FIELD_SIGN,
     FILTER_FIELD_LIST_ITEM,
     FILTER_FIELD_LIST_ITEM_TEXT,
+    FILTER_FIELD_LIST_ITEM_IN,
     FILTER_FIELD_LIST,
-    FILTER_FIELD_TEXT
+    FILTER_FIELD_TEXT,
+    FIELD_COMBO_BUTTON,
+    FIELD_COMBO_LIST,
+    FIELD_COMBO_LIST_ITEM,
+    FIELD_COMBO_LIST_ITEM_TEXT,
+    FILTER_FIELD_COMBO_CONTAINER,
+    INPUT_CHECKBOX,
+    BBAR,
+    BUTTON
   } = Fancy.cls;
 
   const FancyIconSignPaths = {
@@ -21,11 +31,13 @@
     'Ends with': 'M11.14 4L6.43 16H8.36L9.32 13.43H14.67L15.64 16H17.57L12.86 4M12 6.29L14.03 11.71H9.96M20 14V18H2V20H22V14Z',
     'Regex': 'M16,16.92C15.67,16.97 15.34,17 15,17C14.66,17 14.33,16.97 14,16.92V13.41L11.5,15.89C11,15.5 10.5,15 10.11,14.5L12.59,12H9.08C9.03,11.67 9,11.34 9,11C9,10.66 9.03,10.33 9.08,10H12.59L10.11,7.5C10.3,7.25 10.5,7 10.76,6.76V6.76C11,6.5 11.25,6.3 11.5,6.11L14,8.59V5.08C14.33,5.03 14.66,5 15,5C15.34,5 15.67,5.03 16,5.08V8.59L18.5,6.11C19,6.5 19.5,7 19.89,7.5L17.41,10H20.92C20.97,10.33 21,10.66 21,11C21,11.34 20.97,11.67 20.92,12H17.41L19.89,14.5C19.7,14.75 19.5,15 19.24,15.24V15.24C19,15.5 18.75,15.7 18.5,15.89L16,13.41V16.92H16V16.92M5,19A2,2 0 0,1 7,17A2,2 0 0,1 9,19A2,2 0 0,1 7,21A2,2 0 0,1 5,19H5Z',
     'Greater Than': 'M5.5,4.14L4.5,5.86L15,12L4.5,18.14L5.5,19.86L19,12L5.5,4.14Z',
-    'Less Than': 'M18.5,4.14L19.5,5.86L8.97,12L19.5,18.14L18.5,19.86L5,12L18.5,4.14Z'
+    'Less Than': 'M18.5,4.14L19.5,5.86L8.97,12L19.5,18.14L18.5,19.86L5,12L18.5,4.14Z',
+    'chevron': 'M11.293 6.293a1 1 0 0 1 1.414 1.414l-4 4a1 1 0 0 1-1.414 0l-4-4a1 1 0 0 1 1.414-1.414L8 9.586l3.293-3.293z'
   };
 
   const FancyTextSign = {
     'Clear': '=',
+    'List': 'in',
     'Contains': '=',
     'Not Contains': '!=',
     'Equals': '==',
@@ -38,12 +50,15 @@
     'Greater Than': '>',
     'Less Than': '<',
     'Positive': '+',
-    'Negative': '-'
+    'Negative': '-',
+    'True': 'T',
+    'False': 'F'
   };
 
   const FancySignText = {
     '=': 'Clear',
     '=': 'Contains',
+    'in': 'List',
     '!=': 'Not Contains',
     '==': 'Equals',
     '!==': 'Not Equals',
@@ -55,18 +70,19 @@
     '>': 'Greater Than',
     '<': 'Less Than',
     '+': 'Positive',
-    '-': 'Negative'
+    '-': 'Negative',
+    'T': 'True',
+    'F': 'False'
   };
 
-  const {
-    div,
-    input
-  } = Fancy;
+  const { div, input } = Fancy;
 
   class FilterField {
     sign = '=';
     defaultSign = '=';
     value = '';
+    disabled = false;
+    minListWidth = 140;
     constructor(config) {
       Object.assign(this, config);
 
@@ -75,7 +91,11 @@
     }
     render() {
       const me = this;
-      const el = div(FILTER_FIELD);
+      const cls = [FILTER_FIELD];
+
+      me.disabled && cls.push(FIELD_DISABLED);
+
+      const el = div(cls);
 
       me.container = me.renderTo;
 
@@ -88,33 +108,65 @@
       me.elSign = elSign;
 
       const elInput = input(FILTER_FIELD_INPUT);
-      elInput.value = me.value;
+      if(me.column.type === 'boolean' && (me.value === true || me.value === false)){
+        switch (me.value) {
+          case true:
+            me.$replacedSign = 'T';
+            elInput.value = me.lang.sign.t;
+            break;
+          case false:
+            me.$replacedSign = 'F';
+            elInput.value = me.lang.sign.f;
+            break;
+        }
+      } else if(Array.isArray(me.value)) {
+        const keysAsString = me.value.join(',');
+
+        elInput.value = `(${me.value.length}) ${keysAsString}`;
+      }
+      else {
+        elInput.value = me.value;
+      }
       me.input = elInput;
+
+      if(me.disabled){
+        me.input.disabled = true;
+      }
 
       const elText = div(FILTER_FIELD_TEXT);
       me.elText = elText;
 
-      me.updateUI(FancySignText[me.sign || me.defaultSign]);
+      const elButton = div(FIELD_COMBO_BUTTON, {
+        display: 'none'
+      });
+      elButton.innerHTML = [
+        '<svg width="16px" height="16px" viewBox="0 0 16 16" style="vertical-align: middle; fill: currentcolor;">',
+        `<path d="${FancyIconSignPaths.chevron}"></path>`,
+        '</svg>'
+      ].join('');
+      me.elButton = elButton;
 
-      el.append(elSign, elInput, elText);
+      el.append(elSign, elInput, elButton, elText);
       me.el = el;
+
+      me.updateUI(FancySignText[me.sign || me.defaultSign]);
 
       me.container.appendChild(el);
     }
     ons() {
       const me = this;
 
+      me.abortController = new AbortController();
+      const { signal } = me.abortController;
+
       me.debouceInputFn = Fancy.debounce(me.onInput.bind(this), 300);
-      me.input.addEventListener('input', me.debouceInputFn);
-      me.input.addEventListener('focus', me.#onFocus.bind(this));
-      me.elSign.addEventListener('click', me.signClick.bind(this));
+      me.input.addEventListener('input', me.debouceInputFn, { signal });
+      me.input.addEventListener('focus', me.#onFocus.bind(this), { signal });
+      me.elSign.addEventListener('click', me.signClick.bind(this), { signal });
+      me.elButton.addEventListener('click', me.buttonClick.bind(this), { signal });
     }
     uns(){
-      const me = this;
-
-      me.input.removeEventListener('input', me.debouceInputFn);
-      me.input.removeEventListener('focus', me.#onFocus.bind(this));
-      me.elSign.removeEventListener('click', me.signClick.bind(this));
+      this.abortController.abort();
     }
     destroy() {
       const me = this;
@@ -123,7 +175,7 @@
       me.destroyComboList();
       me.el.remove();
     }
-    signClick() {
+    signClick(e) {
       const me = this;
 
       if(!me.column.type){
@@ -140,6 +192,103 @@
         me.destroyComboList();
       }
     }
+    buttonClick() {
+      const me = this;
+
+      if (!me.elComboButtonList) {
+        requestAnimationFrame(() => {
+          me.hideAllOpenedComboList();
+          me.showComboButtonList();
+        });
+      } else {
+        me.destroyComboButtonList();
+      }
+    }
+    showComboButtonList() {
+      const me = this;
+      const elRect = me.el.getBoundingClientRect();
+      let top = elRect.top + window.scrollY - 1 + elRect.height;
+      let left = elRect.left + window.scrollX;
+      let width = elRect.width;
+
+      if(width < me.minListWidth){
+        width = me.minListWidth;
+      }
+
+      const containerEl = div([FILTER_FIELD_COMBO_CONTAINER, 'fg-theme-' + me.theme], {
+        top: `${top}px`,
+        left: `${left}px`,
+        width: `${width}px`
+      });
+
+      const comboEl = div(FIELD_COMBO_LIST, {
+        position: 'static'
+      });
+
+      me.itemsMap = new Map();
+
+      if(me.items === undefined){
+        me.generateItems();
+      }
+
+      comboEl.innerHTML = me.items.map(item => {
+        const hidden = item.hidden;
+        const innerHTML = [
+          `<div value="${item.value}" class="${FIELD_COMBO_LIST_ITEM} ${hidden? 'HIDDEN' : ''}">`
+        ];
+
+        me.itemsMap.set(String(item.text), item);
+
+        innerHTML.push(`<input class="${INPUT_CHECKBOX}" type="checkbox" ${item.checked === false? '' : 'checked'}>`);
+        innerHTML.push(`<div class="${FIELD_COMBO_LIST_ITEM_TEXT}">${item.text || '&nbsp;'}</div>`);
+        innerHTML.push('</div>');
+
+        return innerHTML.join('');
+      }).join('');
+
+      const searchField = input(FILTER_FIELD_INPUT, {});
+      searchField.setAttribute('placeholder', me.lang.search);
+
+      const debounceInputFn = Fancy.debounce(me.onInputKeyDown.bind(this), 300);
+      searchField.addEventListener('input', debounceInputFn.bind(me));
+
+      const bbar = div(BBAR, {
+        justifyContent: 'flex-end'
+      });
+
+      const resetButtonEl = div(BUTTON);
+
+      resetButtonEl.innerHTML = me.lang.reset;
+      resetButtonEl.addEventListener('click', me.buttonResetClick.bind(this));
+
+      bbar.appendChild(resetButtonEl);
+
+      containerEl.append(searchField, comboEl, bbar);
+
+      comboEl.addEventListener('click', me.onComboListClick.bind(this));
+
+      document.body.appendChild(containerEl);
+      me.elComboButtonList = containerEl;
+      me.onDocMouseDownFn = me.onDocMouseDown.bind(this);
+
+      document.addEventListener('mousedown', me.onDocMouseDownFn);
+    }
+    hideAllOpenedComboList(){
+      document.body.querySelectorAll(`.${FILTER_FIELD_LIST}`).forEach(el => {
+        el.remove();
+      });
+
+      document.body.querySelectorAll(`.${FILTER_FIELD_COMBO_CONTAINER}`).forEach(el => {
+        el.remove();
+      });
+
+      delete this.elComboList;
+      delete this.elComboButtonList;
+    }
+    destroyComboButtonList(){
+      this.elComboButtonList?.remove();
+      delete this.elComboButtonList;
+    }
     #onFocus(event){
       const me = this;
 
@@ -153,33 +302,43 @@
       !me.preventFire && me.onChange?.(value, sign, me.column, me.signWasChanged);
       delete me.signWasChanged;
     }
-    hideAllOpenedComboList(){
-      document.body.querySelectorAll(`.${FILTER_FIELD_LIST}`).forEach(el => {
-        el.remove();
-      });
-    }
     destroyComboList() {
       this.elComboList?.remove();
       delete this.elComboList;
     }
     showComboList() {
       const me = this;
+      const elRect = me.el.getBoundingClientRect();
       const elSignRect = me.elSign.getBoundingClientRect();
-      const top = elSignRect.top - 1 + elSignRect.height;
+      const top = elSignRect.top + window.scrollY - 1 + elSignRect.height;
       const left = elSignRect.left;
+      let width = elRect.width;
+
+      if(width < me.minListWidth){
+        width = me.minListWidth;
+      }
+
       const el = div([FILTER_FIELD_LIST, 'fg-theme-' + me.theme], {
         top: `${top}px`,
-        left: `${left}px`
+        left: `${left}px`,
+        width: `${width}px`
       });
 
       let signs = [];
 
       switch(me.column.type){
         case 'string':
-          signs = ['Clear', 'Contains', 'Not Contains', 'Equals', 'Not Equals', 'Empty', 'Not Empty', 'Starts with', 'Ends with', 'Regex'];
+          signs.push('Clear');
+          me.column.filter?.list && signs.push('List');
+          signs.push(...['Contains', 'Not Contains', 'Equals', 'Not Equals', 'Empty', 'Not Empty', 'Starts with', 'Ends with', 'Regex']);
           break;
         case 'number':
-          signs = ['Clear', 'Contains', 'Not Contains', 'Equals', 'Not Equals', 'Empty', 'Not Empty', 'Greater Than', 'Less Than', 'Positive', 'Negative'];
+          signs.push('Clear');
+          me.column.filter?.list && signs.push('List');
+          signs.push(...['Contains', 'Not Contains', 'Equals', 'Not Equals', 'Empty', 'Not Empty', 'Greater Than', 'Less Than', 'Positive', 'Negative']);
+          break;
+        case 'boolean':
+          signs = ['Clear', 'T', 'F'];
           break;
       }
 
@@ -204,6 +363,10 @@
             innerHTML.push(`<path d="${FancyIconSignPaths[sign]}"></path>`);
             innerHTML.push('</svg>');
             break;
+          case 'List':
+            innerHTML.pop();
+            innerHTML.push(`<span class="${FILTER_FIELD_LIST_ITEM_IN}">IN</span>`);
+            break;
           case 'Positive':
             innerHTML.pop();
             innerHTML.push('&gt;0');
@@ -211,6 +374,14 @@
           case 'Negative':
             innerHTML.pop();
             innerHTML.push('&lt;0');
+            break;
+          case 'T':
+            innerHTML.pop();
+            innerHTML.push('&nbsp;T&nbsp;');
+            break;
+          case 'F':
+            innerHTML.pop();
+            innerHTML.push('&nbsp;F&nbsp;');
             break;
         }
 
@@ -227,28 +398,96 @@
       me.elComboList = el;
       me.onDocMouseDownFn = me.onDocMouseDown.bind(this);
 
-      document.addEventListener('mousedown', me.onDocMouseDownFn);
+      document.addEventListener('mousedown', me.onDocMouseDownFn, {
+        once: true
+      });
     }
     onDocMouseDown(e) {
       const me = this;
 
-      if (!e.target.closest(`.${FILTER_FIELD_LIST}`) && !e.target.closest(`.${FILTER_FIELD_SIGN}`)) {
+      if (
+        !e.target.closest(`.${FILTER_FIELD_LIST}`)
+        && !e.target.closest(`.${FILTER_FIELD_SIGN}`)
+        && !e.target.closest(`.${FILTER_FIELD_COMBO_CONTAINER}`)
+        && !e.target.closest(`.${FIELD_COMBO_BUTTON}`)
+      ) {
         document.removeEventListener('mousedown', me.onDocMouseDownFn);
         me.destroyComboList();
+        me.destroyComboButtonList();
       }
+    }
+    onComboListClick(e){
+      const me = this;
+
+      if(e.target.classList.contains(FIELD_COMBO_LIST_ITEM_TEXT)){
+        e.target.previousSibling.checked = !e.target.previousSibling.checked;
+      }
+
+      const itemEl = e.target.closest(`.${FIELD_COMBO_LIST_ITEM}`);
+      const textEl = itemEl.querySelector(`.${FIELD_COMBO_LIST_ITEM_TEXT}`);
+      const input = itemEl.querySelector('input');
+
+      if(e.target.classList.contains(FIELD_COMBO_LIST_ITEM)){
+        input.checked = !input.checked;
+      }
+
+      const item = me.itemsMap.get(textEl.innerHTML);
+      item.checked = input.checked;
+
+      const checkedMap = new Map();
+      const uncheckedMap = new Map();
+
+      me.items.forEach(item => {
+        if(item.checked === false){
+          uncheckedMap.set(item.text, true);
+        } else {
+          checkedMap.set(item.text, true);
+        }
+      });
+
+      let values = Array.from(checkedMap.keys());
+
+      if(uncheckedMap.size === 0){
+        me.input.value = '';
+        values = [];
+      } else {
+        const keysAsString = [ ...checkedMap.keys() ].join(',');
+
+        me.input.value = `(${checkedMap.size}) ${keysAsString}`;
+      }
+
+      me.onChangeValues(values, '=', me.column);
     }
     onListClick(e) {
       const me = this;
       const itemEl = e.target.closest(`.${FILTER_FIELD_LIST_ITEM}`);
-      const sign = itemEl.getAttribute('sign');
+      let sign = itemEl.getAttribute('sign');
 
       me.destroyComboList();
-      me.setSign(sign);
-      me.setValue('');
+
+      switch(sign) {
+        case 'T':
+          sign = 'Contains';
+          me.$replacedSign = 'T';
+          me.setSign(sign);
+          me.setValue(true);
+          break;
+        case 'F':
+          sign = 'Contains';
+          me.$replacedSign = 'F';
+          me.setSign(sign);
+          me.setValue(false);
+          break;
+        default:
+          delete me.$replacedSign;
+          if(me.setSign(sign) !== false){
+            me.setValue('');
+          }
+      }
     }
     setValue(value, fire = true) {
       const me = this;
-      const sign = me.sign || me.defaultSign;
+      let sign = me.sign || me.defaultSign;
 
       switch (sign) {
         case 'empty':
@@ -258,7 +497,9 @@
           value = sign;
           break;
         default:
-          me.input.value = value;
+          if(!me.$replacedSign) {
+            me.input.value = value;
+          }
       }
 
       fire && me.onChange?.(value, sign, me.column, me.signWasChanged);
@@ -276,18 +517,36 @@
       const me = this;
       const prevSign = me.sign;
 
+      if(prevSign === FancyTextSign[sign] && sign !== 'Clear' && me.column.type !== 'boolean'){
+        return false;
+      }
+
       if(FancySignText[sign]){
         sign = FancySignText[sign];
       }
 
       me.sign = FancyTextSign[sign] || sign;
       if(prevSign !== me.sign){
+        if(Array.isArray(me.column.filters?.value)){
+          delete me.column.filters.value;
+          me.items.forEach(item => {
+            delete item.checked;
+          });
+        }
         me.signWasChanged = true;
       }
       me.updateUI(sign);
     }
     updateUI(sign) {
       const me = this;
+
+      if(sign === 'Contains' && Array.isArray(me.column?.filters?.value)){
+        me.$replacedSign = 'List';
+      }
+
+      if(me.$replacedSign){
+        sign = me.$replacedSign;
+      }
 
       switch (sign) {
         case 'Clear':
@@ -315,13 +574,27 @@
             ].join('');
           }
           break;
+        case 'List':
+          me.elSign.innerHTML = 'IN';
+          break;
         case 'Positive':
           me.elSign.innerHTML = '&gt;0';
           break;
         case 'Negative':
           me.elSign.innerHTML = '&lt;0';
           break;
+        case 'T':
+          me.elSign.innerHTML = '&nbsp;T&nbsp;';
+          break;
+        case 'F':
+          me.elSign.innerHTML = '&nbsp;F&nbsp;';
+          break;
       }
+
+      const removeDisabling = () => {
+        me.el?.classList.remove(FIELD_DISABLED);
+        me.input.disabled = false;
+      };
 
       switch (sign) {
         case 'Empty':
@@ -331,11 +604,80 @@
           me.input.style.display = 'none';
           me.elText.innerHTML = sign;
           me.elText.style.display = 'block';
+          removeDisabling();
+          me.elButton.style.display = 'none';
+          break;
+        case 'List':
+          me.el.classList.add(FIELD_DISABLED);
+          me.input.style.display = '';
+          me.input.disabled = true;
+          me.elText.style.display = 'none';
+          me.elButton.style.display = '';
+          break;
+        case 'T':
+          me.input.value = me.lang.sign.t;
+          me.elButton.style.display = 'none';
+          break;
+        case 'F':
+          me.input.value = me.lang.sign.f;
+          me.elButton.style.display = 'none';
           break;
         default:
           me.input.style.display = '';
           me.elText.style.display = 'none';
+          removeDisabling();
+          me.elButton.style.display = 'none';
       }
+
+      if(me.column.type === 'boolean'){
+        me.el?.classList.add(FIELD_DISABLED);
+        me.input.disabled = true;
+      }
+    }
+    onInputKeyDown(event){
+      const me = this;
+      const value = event.target.value;
+      const hiddenMap = new Map();
+
+      me.items.forEach(item => {
+        if(!item.text.includes(value)){
+          item.hidden = true;
+          hiddenMap.set(item.text, true);
+        } else {
+          item.hidden = false;
+        }
+      });
+
+      me.elComboButtonList.querySelectorAll(`.${FIELD_COMBO_LIST_ITEM_TEXT}`).forEach(item => {
+        const value = item.innerHTML;
+        item.parentElement.style.display = hiddenMap.has(value) ? 'none' : '';
+      });
+    }
+    buttonResetClick(){
+      const me = this;
+
+      me.items.forEach(item => {
+        item.checked = true;
+      });
+
+      me.input.value = '';
+
+      me.elComboButtonList.querySelectorAll('input').forEach(item => {
+        item.checked = true;
+      });
+
+      me.onChangeValues([], '=', me.column);
+    }
+    generateItems(){
+      const me = this;
+      const data = me.grid.getUniqueColumnData(me.column).map(value => {
+        return {
+          value,
+          text: value
+        };
+      });
+
+      me.items = data;
     }
   }
 

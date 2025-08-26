@@ -10,7 +10,8 @@
     ROW_GROUP,
     ROW_GROUP_CELL_SELECTION,
     INPUT_CHECKBOX,
-    BODY
+    BODY,
+    FIELD_COMBO_LIST
   } = Fancy.cls;
 
   /**
@@ -152,8 +153,7 @@
     },
     onBodyCellMouseDown(event) {
       const me = this;
-      const target = event.target;
-      const cell = target.closest(`.${CELL}`);
+      const cell = event.target.closest(`.${CELL}`);
 
       me.hideActiveEditor();
 
@@ -167,7 +167,10 @@
           me.setActiveCell(cell);
           requestAnimationFrame(() => {
             document.addEventListener('mousedown', (event) => {
-              if (!event.target.closest(`div.${BODY}`)) {
+              if (
+                !event.target.closest(`div.${BODY}`)
+                && !(me.activeEditor instanceof Fancy.ComboField)
+              ) {
                 me.clearActiveCell();
                 me.clearSelectionRange();
               }
@@ -178,8 +181,8 @@
           });
         };
 
-        if(target.getAttribute('type') === 'checkbox'){
-          target.addEventListener('click', () => {
+        if(event.target.getAttribute('type') === 'checkbox'){
+          event.target.addEventListener('click', () => {
             setActivateCell();
           }, {
             once: true
@@ -796,21 +799,24 @@
         const item = store.idItemMap.get(itemId);
         const columnIndex = Number(me.activeCellEl.getAttribute('col-index'));
         const column = me.columns[columnIndex];
-        const value = getCellSetterValue({
-          item,
-          column,
-          rowIndex,
-          columnIndex,
-          value: ''
-        });
 
-        store.setById(itemId ,column.index, value);
+        if(column.editable) {
+          const value = getCellSetterValue({
+            item,
+            column,
+            rowIndex,
+            columnIndex,
+            value: ''
+          });
 
-        me.activeCellEl.remove();
+          store.setById(itemId, column.index, value);
 
-        const cell = me.createCell(rowIndex, columnIndex);
-        rowEl.appendChild(cell);
-        me.activeCellEl = cell;
+          me.activeCellEl.remove();
+
+          const cell = me.createCell(rowIndex, columnIndex);
+          rowEl.appendChild(cell);
+          me.activeCellEl = cell;
+        }
 
         return;
       }

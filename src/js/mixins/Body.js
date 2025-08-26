@@ -51,9 +51,8 @@
       const item = me.store.getItemByRowIndex(rowIndex);
       const rowEl = me.renderedRowsIdMap.get(item.id);
 
-      if(rowEl.classList.contains(ROW_GROUP)){
-        const column = me.columns[columnIndex];
-        if(me.rowGroupType === 'column' && column.$isRowGroupColumn){
+      if(rowEl?.classList.contains(ROW_GROUP)){
+        if(me.rowGroupType === 'column'){
           const cell = me.createCellGroupTypeColumn(rowIndex, item, columnIndex);
           rowEl.appendChild(cell);
         }
@@ -62,7 +61,7 @@
 
       const cell = me.createCell(rowIndex, columnIndex);
 
-      rowEl.appendChild(cell);
+      rowEl?.appendChild(cell);
     },
     createCell(rowIndex, columnIndex, allowActiveCellSet = true) {
       const me = this;
@@ -345,6 +344,7 @@
       const me = this;
 
       columnIndexes.forEach((columnIndex) => {
+        const column = me.columns[columnIndex];
         const headerCell = me.headerInnerContainerEl.querySelector(`[col-index="${columnIndex}"]`);
 
         if(!headerCell) return;
@@ -354,11 +354,16 @@
         if (me.filterBar) {
           const filterCell = me.filterBarEl.querySelector(`[col-index="${columnIndex}"]`);
 
+          if(column.filterField){
+            column.filterField.destroy();
+            delete column.filterField;
+          }
+
           filterCell.remove?.();
         }
 
         me.renderedRowsIdMap.forEach(rowEl => {
-          if (rowEl.classList.contains(ROW_GROUP)) return;
+          if (rowEl.classList.contains(ROW_GROUP) && me.rowGroupType !== 'column') return;
 
           const cell = rowEl.querySelector(`[col-index="${columnIndex}"]`);
 
@@ -717,6 +722,10 @@
       const me = this;
 
       if (me.columnResizing) return;
+
+      me.bodyEl.querySelectorAll(`.${ROW_HOVER}`).forEach(el => {
+        el.classList.remove(ROW_HOVER);
+      });
 
       event.target.classList.add(ROW_HOVER);
 

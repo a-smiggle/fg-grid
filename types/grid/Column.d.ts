@@ -7,6 +7,14 @@ export interface RenderParams<TData = any> {
   cell: HTMLDivElement;
 }
 
+export interface ChangeParams<TData = any> {
+  item: TData;
+  id: string;
+  key: string;
+  oldValue: string | number | unknown;
+  value: string | number | unknown;
+}
+
 type Currencies = 'USD' | 'EUR' | 'GBP' | 'JPY' | 'CNY';
 
 export interface FormatParams<TData = any> extends RenderParams<TData> {
@@ -54,7 +62,14 @@ export interface Column<TData = any> {
   hidden?: boolean;
   index?: keyof TData;
   id?: string;
-  filter?: boolean;
+  filter?: boolean | {
+    defaultFilter?: 'list' | string;
+    list?: boolean;
+    items?: {
+      value: string;
+      text: string;
+    }[];
+  };
   menu?: boolean;
   type?: 'string' | 'number' | 'date' | 'boolean' | 'currency' | 'order';
   title?: string;
@@ -86,4 +101,20 @@ export interface Column<TData = any> {
   setter?(params: SetterParams<TData>): string|number|undefined|null|object;
 
   agFn?: 'sum' | 'avg' | 'min' | 'max' | ((params: unknown) => number | string);
+
+  editor?: {
+    type: 'combo' | string;
+    disabled?: boolean;
+    typing?: boolean;
+    leftListRender?: (params: {
+      item: {
+        value: string;
+        text: string;
+      }
+    }) => string
+    items?: {
+      value: string;
+      text: string;
+    }[];
+  }
 }

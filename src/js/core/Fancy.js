@@ -31,7 +31,7 @@ const globalObj = getGlobalObject();
 const documentObj = getDocumentObject();
 
 const Fancy = {
-  version: '0.9.0',
+  version: '0.9.6',
   isTouchDevice: 'ontouchstart' in globalObj,
   gridIdSeed: 0,
   gridsMap: new Map(),

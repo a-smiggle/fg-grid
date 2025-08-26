@@ -19,8 +19,11 @@
   const lang = {
     group: 'Group',
     groupBarDragEmpty: 'Drag columns here to generate row groups',
+    search: 'Search...',
+    reset: 'Reset',
     sign: {
       clear: 'Clear',
+      list: 'List',
       contains: 'Contains',
       notContains: 'Not Contains',
       equals: 'Equals',
@@ -33,7 +36,9 @@
       greaterThan: 'Greater Than',
       lessThan: 'Less Than',
       positive: 'Positive',
-      negative: 'Negative'
+      negative: 'Negative',
+      t: 'True',
+      f: 'False'
     }
   };
 
@@ -134,6 +139,8 @@
       me.activeCell && me.initKeyNavigation();
 
       me.ons();
+
+      me.onReady?.(me);
     }
     initContainer(renderTo){
       const me = this;
@@ -358,6 +365,19 @@
               newRowGroupsOrder[column.rowGroupOrder] = column.index;
             }
           }
+
+          if(column.filter?.defaultFilter){
+            switch (column.filter?.defaultFilter?.toLowerCase()){
+              case 'list':
+              case 'in':
+                column.filters = {
+                  sign: 'in',
+                  value: ''
+                };
+                break;
+            }
+            delete column.filter?.defaultFilter;
+          }
         });
 
         if(newRowGroupsOrder){
@@ -448,7 +468,12 @@
 
       const storeConfig = {
         data: structuredClone(config.data),
-        defaultRowGroupSort: config.defaultRowGroupSort || me.defaultRowGroupSort
+        defaultRowGroupSort: config.defaultRowGroupSort || me.defaultRowGroupSort,
+        onChange(params) {
+          if(params.value !== params.oldValue){
+            me.onChange?.(params);
+          }
+        }
       };
 
       if(rowGroups.length){
@@ -797,6 +822,28 @@
     }
     getItemById(id) {
       return this.store.idItemMap.get(id);
+    }
+    getColumnData(column){
+      const me = this;
+      const columnData = [];
+
+      if(!column.index){
+        return false;
+      }
+
+      me.store.data.forEach(item => {
+        columnData.push(item[column.index]);
+      });
+
+      return columnData;
+    }
+    getUniqueColumnData(column){
+      const me = this;
+      const columnData = me.getColumnData(column);
+      const dataSet = new Set(columnData);
+      const uniqueData = Array.from(dataSet).sort();
+
+      return uniqueData;
     }
   }
 
