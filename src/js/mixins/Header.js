@@ -37,6 +37,12 @@
    * @mixin GridMixinHeader
    */
   const GridMixinHeader = {
+    /**
+     * Optional callback called when a column is resized.
+     * @param {Object} column - The resized column object.
+     * @param {number} width - The new width of the column.
+     */
+    onColumnResize: null,
     deltaStartColumnDrag: 10,
     onHeaderMouseDown(event) {
       event.preventDefault();
@@ -503,6 +509,12 @@
     },
     onResizeMouseUp() {
       const me = this;
+
+      // Detect the resized column and call the callback
+      if (typeof me.onColumnResize === 'function' && me.resizeDownColumnIndex != null) {
+        const column = me.columns[me.resizeDownColumnIndex];
+        me.onColumnResize(column, column.width);
+      }
 
       me.columnResizing = false;
       delete me.resizeColumnGroup;
