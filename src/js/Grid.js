@@ -141,6 +141,15 @@
       me.ons();
 
       me.onReady?.(me);
+        // Force recalculation of scroll bar visibility after initial render
+        requestAnimationFrame(() => {
+          me.scroller.setVerticalSize();
+          me.scroller.updateHorizontalScrollSize();
+          me.scroller.calcMaxScrollTop();
+          me.scroller.calcVisibleRows();
+          me.scroller.updateScrollTop();
+          me.renderVisibleRows();
+        });
     }
     initContainer(renderTo){
       const me = this;
